@@ -2,7 +2,7 @@
   "name": "codeless",
   "version": "1.4.0",
   "type": "module",
-  "main": "compiler.js",
+  "main": "src/legacy/compiler-v3.js",
   "dependencies": {
     "better-sqlite3": "^11.0.0",
     "express": "^4.21.0",
@@ -25,14 +25,14 @@
     "@types/node": "^20.10.0"
   },
   "scripts": {
-    "start": "node compiler.js",
-    "build:v4": "node cli/build.js",
-    "dev:v4": "tsx cli/dev.ts",
-    "migrate:v4": "node cli/migrate.js",
-    "check:v4": "tsx cli/check.ts",
-    "start:v4": "node generated/server.js"
+    "start": "node src/legacy/compiler-v3.js",
+    "build": "node src/cli/build.js",
+    "dev": "tsx src/cli/dev.ts",
+    "migrate": "node src/cli/migrate.js",
+    "check": "tsx src/cli/check.ts",
+    "start:generated": "node generated/server.js"
   },
   "bin": {
-    "codeless": "./cli/build.js"
+    "codeless": "./src/cli/build.js"
   }
 }

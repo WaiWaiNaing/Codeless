@@ -34,7 +34,7 @@ npm install
 
 ## Configuration
 
-Environment variables (or edit `CONFIG` in `compiler.js`):
+Environment variables (or edit `CONFIG` in `src/legacy/compiler-v3.js` for v3):
 
 | Variable       | Default      | Description              |
 |----------------|--------------|--------------------------|
@@ -151,8 +151,10 @@ route {
 
 ## Running the engine
 
+**v3 (legacy):**
 ```bash
-node compiler.js
+npm start
+# or: node src/legacy/compiler-v3.js
 ```
 
 - Server: `http://localhost:3000` (or `PORT`).
@@ -177,7 +179,7 @@ node compiler.js
 
 1. Put the Codeless rules in **`.cursorrules`** in the project root.
 2. **Files: Associations** → `*.cls` → `javascript`.
-3. Reference `compiler.js` and `api.cls` when asking for new `.cls` files or routes.
+3. Reference `api.cls` and `src/compiler/` when asking for new `.cls` files or routes.
 
 ---
 
@@ -189,21 +191,28 @@ v4 is a **compile-time** pipeline: parse `.cls` → generate real JS → run the
 
 ```
 codeless/
-  cli/           build.js, dev.js, migrate.js
-  compiler/      lexer.js, parser.js, codegen.js
-  runtime/       adapters (sqlite, postgres), core (validator, auth, sugar), plugins
-  generated/     server.js, types.d.ts  ← output
-  api.cls
-  codeless.config.js
+  api.cls              # Entry (edit this)
+  codeless.config.js   # Config
+  package.json
+
+  src/
+    compiler/         # Lexer, parser, codegen, compile
+    runtime/          # Adapters (sqlite, postgres), core (validator, auth, sugar), plugins
+    cli/              # build, dev, check, migrate
+    legacy/            # v3 runtime interpreter (compiler-v3.js)
+
+  generated/          # Build output: server.js, types.d.ts
+  migrations/         # Versioned .sql migrations
 ```
 
 ### Commands
 
 ```bash
-npm run build:v4    # Compile api.cls → generated/server.js + types.d.ts
-npm run dev:v4      # Watch api.cls, rebuild and run server
-npm run migrate:v4  # Apply versioned migrations (SQLite)
-npm run start:v4    # Run generated/server.js (production)
+npm run build         # Compile api.cls → generated/server.js + types.d.ts
+npm run dev           # Watch .cls files, rebuild and run server (hot restart)
+npm run check         # Static analysis (schema, security, routes, circular deps)
+npm run migrate       # Apply versioned migrations (SQLite)
+npm run start:generated   # Run generated/server.js (production)
 ```
 
 ### Features
@@ -213,7 +222,8 @@ npm run start:v4    # Run generated/server.js (production)
 - **Safe query builder** — `sugar.all(table, where, orderBy)` accepts `orderBy: { field, direction: 'asc'|'desc' }`; field is validated (no ORDER BY injection).
 - **Versioned migrations** — system table `_codeless_migrations`; put `.sql` files in `migrations/` and run `migrate:v4`.
 - **Type generation** — `generated/types.d.ts` with interfaces per `data` block for IDE/AI.
-- **Plugin hook points** — `runtime/plugins`: `beforeAction`, `afterAction`, `onRouteRegister`.
+- **Plugin hook points** — `src/runtime/plugins`: `beforeAction`, `afterAction`, `onRouteRegister`.
+- **Static check** — `npm run check` validates schema, security (forbidden keywords in do-blocks), routes, and circular dependencies.
 
 ### Config (`codeless.config.js`)
 

@@ -10,6 +10,6 @@
     "rootDir": ".",
     "types": ["node"]
   },
-  "include": ["cli/**/*.ts", "compiler/**/*.d.ts"],
+  "include": ["src/cli/**/*.ts", "src/compiler/**/*.d.ts"],
   "exclude": ["node_modules", "generated", "dist"]
 }

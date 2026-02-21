@@ -13,10 +13,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * Load codeless.config.js from root. Returns resolved paths and options.
- * @param {string} [rootDir] - Project root (default: parent of compiler/)
+ * @param {string} [rootDir] - Project root (default: two levels up from src/compiler)
  */
 export async function loadConfig(rootDir) {
-  const root = rootDir ? path.resolve(rootDir) : path.resolve(__dirname, '..');
+  const root = rootDir ? path.resolve(rootDir) : path.resolve(__dirname, '..', '..');
   const configPath = path.join(root, 'codeless.config.js');
   if (!fs.existsSync(configPath)) {
     return {
@@ -68,7 +68,7 @@ export async function compile(rootDir) {
   const { server, types } = generate(ast, {
     adapter,
     serverPath: output.server,
-    runtimeDir: path.join(relRuntime, 'runtime'),
+    runtimeDir: path.join(relRuntime, 'src', 'runtime'),
   });
   const outDir = path.dirname(output.server);
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });

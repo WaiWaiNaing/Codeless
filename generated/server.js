@@ -4,10 +4,10 @@
  */
 
 import express from 'express';
-import { createValidator } from '../runtime/core/validator.js';
-import { authMiddleware } from '../runtime/core/auth.js';
-import { createSugar } from '../runtime/core/sugar.js';
-import { SqliteAdapter } from '../runtime/adapters/sqlite.js';
+import { createValidator } from '../src/runtime/core/validator.js';
+import { authMiddleware } from '../src/runtime/core/auth.js';
+import { createSugar } from '../src/runtime/core/sugar.js';
+import { SqliteAdapter } from '../src/runtime/adapters/sqlite.js';
 
 const app = express();
 app.use(express.json());

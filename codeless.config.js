@@ -1,6 +1,6 @@
 /**
  * Codeless v4 – Production configuration
- * @type {import('./cli/config-types.js').CodelessConfig}
+ * @type {import('./src/cli/config-types.js').CodelessConfig}
  */
 export default {
   entry: './api.cls',

@@ -11,7 +11,7 @@ import chokidar from 'chokidar';
 import chalk from 'chalk';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, '..');
+const ROOT = path.resolve(__dirname, '..', '..');
 
 interface CompileResult {
   config: { output: { server: string }; server?: { port?: number } };
