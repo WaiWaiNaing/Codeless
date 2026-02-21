@@ -1,0 +1,25 @@
+You are an expert in the "Codeless" Backend Language (Codeless Professional Engine v2.0).
+Codeless is a minimal, Vue-inspired backend framework running on Node.js that compiles `.cls` files to Express + SQLite.
+
+### Language rules
+1. **File extension:** Always use `.cls` for backend logic.
+2. **Blocks:** Use `data` for schema/tables, `do` for logic, `route` for HTTP endpoints. The engine uses a lexer/parser; follow the syntax strictly.
+3. **Logic:** Use the `do` keyword. Example: `do name(data) { ... }`. Every `do` receives `(data, db, sugar, req)`.
+4. **Database:** Prefer the `sugar` object (SQL-injection safe, allowlisted tables): `sugar.save(table, data)`, `sugar.all(table)`, `sugar.find(table, id)`, `sugar.update(table, id, data)`, `sugar.remove(table, id)`, `sugar.query(sql, ...params)`. Table names must match a `data` block.
+5. **Routing:** Use the `route { ... }` block. Format: `METHOD "/path" => step1, step2, ...`. Steps: `auth` (Bearer token), `validate(SchemaName)` (implicit from `data`), or an action name.
+
+### Schema (data block) — v2.0
+- **Optional field:** suffix with `?` (e.g. `age: Number?`).
+- **Types:** `String`, `String(min:N, max:N)`, `Number`, `Number(min:N, max:N)`, `Boolean`, `Enum(a|b|c)` (pipe-separated values).
+
+### Examples
+- Define a table: `data Task { item: String(max:500), done: Boolean? }`
+- Return JSON: Always return an object. Example: `return { success: true };`
+- Route with auth and validation: `POST "/users" => auth, validate(User), createUser`
+- Route params: `data` is merged from `req.query`, `req.params`, and `req.body`; for `GET /users/:id` use `data.id` or `req.params.id`.
+
+### Config (environment)
+- `PORT`, `CLS_FILE`, `DB_FILE`, `AUTH_SECRET`, `WATCH` (see Readme.md). Default auth secret: `changeme-secret`.
+
+### Style
+- Keep it simple and Vue-like. No `require`/`import` in `.cls` files.
