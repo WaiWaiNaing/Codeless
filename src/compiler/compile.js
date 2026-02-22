@@ -6,7 +6,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
-import { parse } from './parser.js';
+import { resolveModules } from './resolver.js';
 import { generate } from './codegen.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -62,8 +62,7 @@ export async function compile(rootDir) {
   if (!fs.existsSync(entry)) {
     throw new Error(`Entry file not found: ${entry}`);
   }
-  const source = fs.readFileSync(entry, 'utf-8');
-  const ast = parse(source);
+  const ast = resolveModules(entry, config.root);
   const relRuntime = path.relative(path.dirname(output.server), config.root).replace(/\\/g, '/') || '.';
   const { server, types } = generate(ast, {
     adapter,

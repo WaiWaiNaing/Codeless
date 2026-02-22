@@ -21,7 +21,7 @@ export const TT = {
   EOF: 'EOF',
 };
 
-const KEYWORDS = new Set(['data', 'do', 'route', 'migration']);
+const KEYWORDS = new Set(['data', 'do', 'route', 'migration', 'import']);
 const HTTP_METHODS = new Set(['GET', 'POST', 'PUT', 'DELETE', 'PATCH']);
 
 export function lex(source) {

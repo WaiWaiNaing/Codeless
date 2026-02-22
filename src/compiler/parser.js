@@ -11,6 +11,7 @@ import { locateBraceInSource, extractRawBlock } from './source-utils.js';
  * @property {DoBlock[]} doBlocks
  * @property {RouteLine[]} routeLines
  * @property {Migration[]} migrations
+ * @property {ImportStatement[]} imports
  */
 
 /**
@@ -37,9 +38,16 @@ export function parse(source) {
     return t && t.type === type && (value === undefined || t.value === value);
   }
 
-  const ast = { dataBlocks: [], doBlocks: [], routeLines: [], migrations: [] };
+  const ast = { dataBlocks: [], doBlocks: [], routeLines: [], migrations: [], imports: [] };
 
   while (!check(TT.EOF)) {
+    if (check(TT.KEYWORD, 'import')) {
+      consume(TT.KEYWORD);
+      const path = consume(TT.STRING).value;
+      ast.imports.push({ path });
+      continue;
+    }
+
     if (check(TT.KEYWORD, 'data')) {
       consume(TT.KEYWORD);
       const name = consume(TT.IDENT).value;
