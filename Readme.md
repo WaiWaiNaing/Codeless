@@ -1,30 +1,14 @@
-# Codeless
+# Codeless v4
 
-A minimal, Vue-inspired backend framework for Node.js. Write APIs with a simple `.cls` syntax—no boilerplate, just `data`, `do`, and `route`. The engine compiles `.cls` to Express.js with SQLite (or PostgreSQL), validation, and optional auth.
+A minimal, Vue-inspired backend framework for Node.js. Write APIs in a single `.cls` file using `data`, `do`, and `route`. The framework compiles to Express + SQLite (or PostgreSQL) with validation and optional JWT auth.
 
-**Engines:** **v4 (recommended)** — compile-time codegen, no `new Function`/vm2, adapter-based DB. **v3** — runtime interpreter with JWT, metrics, OpenAPI.
+**v4** uses compile-time code generation: no `new Function`, no vm2. You edit `api.cls` and `codeless.config.js`; the framework owns the compiler and runtime under `/src` and writes output to `/generated`.
 
-## Features
-
-- **Lexer + parser** — Token-based parsing for `data`, `do`, `route`, and `migration`; do-block bodies extracted from source so JS (e.g. `sugar.save`) parses correctly.
-- **SQLite** via `better-sqlite3`; **SQL injection protection** — table names allowlisted; **connection pooling** and **prepared statement cache** per connection.
-- **Rich schema types** — `String(min/max, format:email, pattern)`, `Number(min/max, integer)`, `Enum`, `Boolean`, `Date`, `Password` (bcrypt); optional `?`; cross-field validation rules.
-- **Implicit validation** — `validate(Schema)` in the route pipeline; `SchemaValidator` with type checks, custom validators, and cross-field rules.
-- **JWT auth** — `auth` in the pipeline uses JWT (access + refresh tokens); role-based access via `requireRoles()`.
-- **Rate limiting** — Global rate limit (window + max requests); optional per-route `rateLimit(N)` in pipeline.
-- **Watch mode** — Hot-reload when `api.cls` changes.
-- **Structured logging** — Pino with configurable level (`LOG_LEVEL`).
-- **Prometheus metrics** — Route duration, active requests, DB query duration, validation errors; `GET /metrics`.
-- **OpenAPI** — Auto-generated spec and Swagger UI at `GET /api-docs.json` and `/api-docs`.
-- **No imports** in `.cls` files; runtime injects `data`, `db`, `sugar`, `req`. Optional **VM2 sandbox** for action execution (SafeActionExecutor).
-- **Health** — `GET /__health` returns `{ status: 'ok', engine: 'Codeless Enterprise v3.0' }`.
-
-## Prerequisites
-
-- Node.js
-- (Optional) Cursor or any editor; set **Files: Associations** → `*.cls` → `javascript` for highlighting.
+---
 
 ## Installation
+
+**From the repo (development):**
 
 ```bash
 git clone <your-repo-url>
@@ -32,205 +16,182 @@ cd Codeless
 npm install
 ```
 
-## Configuration
+**As a dependency (when published):**
 
-Environment variables (or edit `CONFIG` in `src/legacy/compiler-v3.js` for v3):
-
-| Variable       | Default      | Description              |
-|----------------|--------------|--------------------------|
-| `PORT`         | `3000`       | Server port              |
-| `CLS_FILE`     | `./api.cls`  | Path to the `.cls` file  |
-| `DB_FILE`      | `codeless.db`| SQLite database path     |
-| `NODE_ENV`     | `development`| Environment             |
-| `JWT_SECRET`   | (dev default)| **Required in production** for JWT auth |
-| `JWT_EXPIRY`   | `1h`         | Access token expiry      |
-| `REFRESH_TOKEN_EXPIRY` | `7d` | Refresh token expiry  |
-| `BCRYPT_ROUNDS`| `10`         | Password hashing rounds  |
-| `RATE_LIMIT_WINDOW_MS` | `60000` | Rate limit window (ms) |
-| `RATE_LIMIT_MAX_REQUESTS` | `100` | Max requests per window |
-| `METRICS_ENABLED` | `true`   | Prometheus metrics       |
-| `LOG_LEVEL`    | `info`       | Pino log level           |
-| `WATCH`        | `true`       | Set to `false` to disable hot-reload |
-
-## Language Overview
-
-| Block   | Purpose |
-|--------|--------|
-| `data` | Defines SQLite table structure and validation schema (optional `?`, type args, enums). |
-| `do`   | Defines business logic (functions). Receives `(data, db, sugar, req)`. |
-| `route`| Maps HTTP method + path to a pipeline: `auth`, `validate(Schema)`, and action names. |
-
-## Syntax
-
-### 1. Schema (`data`)
-
-- **Optional field:** `fieldName?`
-- **String:** `String`, `String(min:N, max:N)`
-- **Number:** `Number`, `Number(min:N, max:N)`
-- **Enum:** `Enum(admin|editor|viewer)` (values separated by `|`)
-
-```javascript
-data User {
-    username: String(min:3, max:50),
-    email: String(max:255),
-    role: Enum(admin|editor|viewer),
-    age: Number(min:0, max:150)?
-}
-```
-
-### 2. Logic (`do`)
-
-Each action receives **`(data, db, sugar, req)`**. Use **`sugar`** for safe CRUD (table names are allowlisted):
-
-- `sugar.save(table, data)` — insert row (async), returns `{ id, changes }`
-- `sugar.all(table, where?, orderBy?)` — all rows (async)
-- `sugar.find(table, id)` — one row by primary key (async)
-- `sugar.update(table, id, data)` — update row (async)
-- `sugar.remove(table, id)` — delete row (async)
-- `sugar.transaction(callback)` — run callback in a transaction (async)
-- `sugar.query(sql, ...params)` — raw prepared statement when needed (async)
-
-In v3 all sugar methods are **async** (return Promises); actions can `return` or `return await` them.
-
-**Context `data`** is merged from `req.query`, `req.params`, and `req.body` (body overrides params overrides query), so route params (e.g. `/users/:id`) are available as `data.id`.
-
-```javascript
-do getUser(data) {
-    const id = parseInt(data.id ?? data.params?.id);
-    const user = sugar.find('User', id);
-    if (!user) throw Object.assign(new Error('User not found'), { status: 404 });
-    return user;
-}
-```
-
-### 3. Routing (`route`) and pipeline
-
-Format: `METHOD "/path" => step1, step2, ...` (or `=> [ step1, step2 ]`).
-
-Pipeline steps:
-
-- **`auth`** — Bearer token required; 401 if missing or wrong (uses `AUTH_SECRET`).
-- **`validate(Schema)`** — Run the schema validator; 400 if body doesn’t match the `data` definition.
-- **Action name** — Call the corresponding `do` block with current context.
-
-```javascript
-route {
-    GET    "/users"      => listUsers
-    GET    "/users/:id"  => getUser
-    POST   "/users"      => auth, validate(User), createUser
-    POST   "/comments"   => validate(Comment), createComment
-}
-```
-
-## Full Example (v2.0)
-
-See `api.cls` in this repo for a full example with User, Post, Comment, optional fields, enums, auth, and raw SQL via `sugar.query`.
-
-Minimal snippet:
-
-```javascript
-data User {
-    username: String(min:3, max:50),
-    email: String(max:255),
-    role: Enum(admin|editor|viewer)
-}
-
-do createUser(data) {
-    return sugar.save('User', data);
-}
-
-do listUsers(data) {
-    return sugar.all('User');
-}
-
-route {
-    GET  "/users"  => listUsers
-    POST "/users"  => auth, validate(User), createUser
-}
-```
-
-## Running the engine
-
-**v3 (legacy):**
 ```bash
-npm start
-# or: node src/legacy/compiler-v3.js
+npm install codeless
+npx codeless build
 ```
 
-- Server: `http://localhost:3000` (or `PORT`).
-- Health: `GET /__health`. Metrics: `GET /metrics` (Prometheus). API docs: `GET /api-docs` (Swagger UI).
-- Watch mode is on by default; edit `api.cls` and save to hot-reload routes.
-
-## Error handling
-
-- **Validation errors** (from `validate(Schema)`): status **400**, body `{ error: 'Validation Error', message: '...' }`.
-- **Auth failure**: status **401**, body `{ error: 'Unauthorized', message: '...' }`.
-- **Action errors**: status **500** (or `err.status` if you set it), with **per-action attribution** in the message (e.g. `[createUser] ...`).
-
-## Constraints for AI / Code Generation
-
-- **No imports** in `.cls` files.
-- **Actions** receive `(data, db, sugar, req)`.
-- **Responses:** return a plain object (serialized to JSON).
-- **File extension:** `.cls`.
-- Prefer **`sugar`** over raw `db.prepare` for table access (allowlisted names).
-
-## Teaching Cursor (or any LLM)
-
-1. Put the Codeless rules in **`.cursorrules`** in the project root.
-2. **Files: Associations** → `*.cls` → `javascript`.
-3. Reference `api.cls` and `src/compiler/` when asking for new `.cls` files or routes.
+**Prerequisites:** Node.js 18+. For TypeScript CLI commands (`dev`, `check`), the project uses `tsx` (in devDependencies).
 
 ---
 
-## Codeless v4 – Production Architecture
+## Quick Start
 
-v4 is a **compile-time** pipeline: parse `.cls` → generate real JS → run the compiled server. No runtime DSL execution, no `new Function`, no vm2.
+1. **Create `api.cls`** in the project root with one schema, one action, and one route:
 
-### Structure
+```cls
+data Task {
+    title: String(max:200),
+    done: Boolean?
+}
 
+do listTasks(data) {
+    return sugar.all('Task');
+}
+
+do createTask(data) {
+    return sugar.save('Task', data);
+}
+
+route {
+    GET  "/tasks"   => listTasks
+    POST "/tasks"   => validate(Task), createTask
+}
 ```
-codeless/
-  api.cls              # Entry (edit this)
-  codeless.config.js   # Config
-  package.json
 
-  src/
-    compiler/         # Lexer, parser, codegen, compile
-    runtime/          # Adapters (sqlite, postgres), core (validator, auth, sugar), plugins
-    cli/              # build, dev, check, migrate
-    legacy/            # v3 runtime interpreter (compiler-v3.js)
+2. **Configure** (optional). Create `codeless.config.js` or rely on defaults:
 
-  generated/          # Build output: server.js, types.d.ts
-  migrations/         # Versioned .sql migrations
+```js
+import { defineConfig } from 'codeless';
+export default defineConfig({ entry: './api.cls' });
 ```
 
-### Commands
+3. **Run migrations** so the table exists (first time only):
 
 ```bash
-npm run build         # Compile api.cls → generated/server.js + types.d.ts
-npm run dev           # Watch .cls files, rebuild and run server (hot restart)
-npm run check         # Static analysis (schema, security, routes, circular deps)
-npm run migrate       # Apply versioned migrations (SQLite)
-npm run start:generated   # Run generated/server.js (production)
+npx codeless migrate
 ```
 
-### Features
+4. **Start the dev server** (watch mode, hot restart):
 
-- **No dynamic evaluation** — generated server is plain JS; safe for production.
-- **Adapter layer** — `SqliteAdapter` and `PostgresAdapter` share the same interface; switch via `codeless.config.js` → `adapter: 'sqlite'|'postgres'`.
-- **Safe query builder** — `sugar.all(table, where, orderBy)` accepts `orderBy: { field, direction: 'asc'|'desc' }`; field is validated (no ORDER BY injection).
-- **Versioned migrations** — system table `_codeless_migrations`; put `.sql` files in `migrations/` and run `migrate:v4`.
-- **Type generation** — `generated/types.d.ts` with interfaces per `data` block for IDE/AI.
-- **Plugin hook points** — `src/runtime/plugins`: `beforeAction`, `afterAction`, `onRouteRegister`.
-- **Static check** — `npm run check` validates schema, security (forbidden keywords in do-blocks), routes, and circular dependencies.
+```bash
+npx codeless dev
+```
 
-### Config (`codeless.config.js`)
+5. **Call the API:** `GET http://localhost:3000/tasks`, `POST http://localhost:3000/tasks` with body `{ "title": "Learn Codeless", "done": false }`.
 
-- `entry`, `output.server`, `output.types`
-- `adapter`: `'sqlite'` | `'postgres'`
-- `database.sqlite.path`, `database.postgres.connectionString`
-- `migrations.table`, `migrations.dir`
+Health check: `GET http://localhost:3000/__health` → `{ "status": "ok", "engine": "Codeless v4" }`.
+
+---
+
+## Commands
+
+Use the `codeless` CLI (via `npx codeless <command>` or `npm run <script>`):
+
+| Command | Description |
+|--------|-------------|
+| `codeless dev` | Watch `.cls` files, rebuild and run the server (hot restart). Spawns the watcher from `src/cli/dev.ts`. |
+| `codeless build` | Compile `api.cls` → `generated/server.js` + `generated/types.d.ts`. |
+| `codeless check` | Static analysis: schema integrity, security (forbidden keywords), route validation, circular dependencies. |
+| `codeless migrate` | Apply versioned SQL migrations (SQLite). Use `--test` / `-t` for test DB. |
+
+**Examples:**
+
+```bash
+npx codeless              # show help
+npx codeless build        # compile
+npx codeless dev          # development server with watch
+npx codeless check        # run checks
+npx codeless migrate      # run migrations
+npx codeless migrate -t   # run migrations on test DB
+```
+
+**NPM scripts** (same behavior): `npm run build`, `npm run dev`, `npm run check`, `npm run migrate`.
+
+**Production:** After `codeless build`, run `node generated/server.js` (or `npm run start:generated`).
+
+---
+
+## Folder Rules
+
+| Area | Owner | What you do |
+|------|--------|-------------|
+| **`/src`** | Framework | Do not edit. Contains compiler, runtime, adapters, and CLI. |
+| **`/generated`** | Framework | Do not edit. Generated `server.js` and `types.d.ts`; overwritten on each build. |
+| **`api.cls`** | You | Your API: `data`, `do`, and `route` blocks. |
+| **`codeless.config.js`** | You | Entry file, output paths, adapter (sqlite/postgres), DB and server options. Use `defineConfig` from `codeless` for defaults. |
+| **`/migrations`** | You | Add `.sql` migration files; run `codeless migrate` to apply. |
+
+You own the **surface** of the app (`api.cls`, config, migrations). The framework owns **how** it’s compiled and run (`/src`, `/generated`).
+
+---
+
+## Best Practices
+
+### Use `sugar` for SQL safety
+
+- Prefer **`sugar`** over raw database access. Table names are allowlisted (must match a `data` block), so you avoid SQL injection from user input in table/column names.
+- **Safe:** `sugar.save('Task', data)`, `sugar.all('Task')`, `sugar.find('Task', id)`, `sugar.update('Task', id, data)`, `sugar.remove('Task', id)`.
+- **When you need raw SQL** (e.g. joins), use **`sugar.query(sql, ...params)`** with parameterized queries only (e.g. `?` placeholders and pass values as arguments). Never concatenate user input into SQL strings.
+
+### Other tips
+
+- Keep **no `require`/`import`** in `.cls` files; the runtime injects `data`, `db`, `sugar`, `req`.
+- Return **plain objects** from `do` blocks (they are JSON-serialized).
+- Use **`validate(Schema)`** in the route pipeline so request bodies are validated before reaching your action.
+- Use **`auth`** in the pipeline for routes that require a valid JWT.
+
+---
+
+## Language at a glance
+
+| Block | Purpose |
+|-------|--------|
+| `data` | Schema/table: types, optional `?`, `String(min/max)`, `Number(min/max)`, `Boolean`, `Enum(a|b|c)`. |
+| `do` | Business logic. Receives `(data, db, sugar, req)`. Use `sugar` for CRUD. |
+| `route` | HTTP: `METHOD "/path" => step1, step2, ...`. Steps: `auth`, `validate(Schema)`, or action name. |
+
+**Pipeline example:**
+
+```cls
+route {
+    GET    "/users"       => listUsers
+    GET    "/users/:id"   => getUser
+    POST   "/users"       => auth, validate(User), createUser
+}
+```
+
+---
+
+## Configuration
+
+**`codeless.config.js`** — use `defineConfig` for defaults and env-aware values:
+
+```js
+import { defineConfig } from 'codeless';
+export default defineConfig({
+  entry: './api.cls',
+  output: { server: './generated/server.js', types: './generated/types.d.ts' },
+  adapter: 'sqlite',  // or 'postgres'
+  database: {
+    sqlite: {},       // path from DB_FILE or codeless.test.db when NODE_ENV=test
+    postgres: { connectionString: process.env.DATABASE_URL },
+  },
+  server: { port: parseInt(process.env.PORT || '3000', 10) },
+  migrations: { table: '_codeless_migrations', dir: './migrations' },
+  plugins: [],
+});
+```
+
+**Environment:** `PORT`, `DB_FILE`, `JWT_SECRET`, `DATABASE_URL`, `NODE_ENV` (e.g. `test` for test DB). See REQUIREMENTS.md for a full list.
+
+---
+
+## Error handling
+
+- **400** — Validation failed (`validate(Schema)`).
+- **401** — Unauthorized (missing or invalid `Authorization: Bearer`).
+- **500** — Action error (or use `err.status` on thrown error).
+
+---
+
+## More
+
+- **Full example:** see `api.cls` in this repo (User, Post, Comment, auth, raw SQL).
+- **Spec and constraints:** see **REQUIREMENTS.md**.
+- **v3 (legacy):** `npm start` runs the runtime interpreter; use v4 (`codeless build` + `generated/server.js`) for production.
 
 ---
 

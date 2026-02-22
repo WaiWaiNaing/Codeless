@@ -2,7 +2,10 @@
   "name": "codeless",
   "version": "1.4.0",
   "type": "module",
-  "main": "src/legacy/compiler-v3.js",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
   "dependencies": {
     "better-sqlite3": "^11.0.0",
     "express": "^4.21.0",
@@ -17,7 +20,8 @@
     "swagger-ui-express": "^5.0.0",
     "vm2": "^3.9.19",
     "chokidar": "^4.0.1",
-    "chalk": "^5.3.0"
+    "chalk": "^5.3.0",
+    "commander": "^12.0.0"
   },
   "devDependencies": {
     "typescript": "^5.3.3",
@@ -29,10 +33,14 @@
     "build": "node src/cli/build.js",
     "dev": "tsx src/cli/dev.ts",
     "migrate": "node src/cli/migrate.js",
+    "migrate:test": "NODE_ENV=test node src/cli/migrate.js",
     "check": "tsx src/cli/check.ts",
-    "start:generated": "node generated/server.js"
+    "start:generated": "npm run build && node generated/server.js",
+    "start:test": "npm run build && NODE_ENV=test DB_FILE=codeless.test.db PORT=3001 node generated/server.js",
+    "test": "npm run check && npm run build",
+    "test:auth": "node scripts/test-auth.mjs"
   },
   "bin": {
-    "codeless": "./src/cli/build.js"
+    "codeless": "./bin/codeless.js"
   }
 }

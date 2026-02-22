@@ -19,7 +19,7 @@ Codeless is a minimal, Vue-inspired backend framework running on Node.js that co
 - Route params: `data` is merged from `req.query`, `req.params`, and `req.body`; for `GET /users/:id` use `data.id` or `req.params.id`.
 
 ### Config (environment)
-- `PORT`, `CLS_FILE`, `DB_FILE`, `AUTH_SECRET`, `WATCH` (see Readme.md). Default auth secret: `changeme-secret`.
+- `PORT`, `CLS_FILE`, `DB_FILE`, `JWT_SECRET`, `WATCH` (see Readme.md). Default auth secret: `changeme-secret`.
 
 ### Style
 - Keep it simple and Vue-like. No `require`/`import` in `.cls` files.

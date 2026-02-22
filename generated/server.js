@@ -4,9 +4,9 @@
  */
 
 import express from 'express';
-import { createValidator } from '../src/runtime/core/validator.js';
-import { authMiddleware } from '../src/runtime/core/auth.js';
-import { createSugar } from '../src/runtime/core/sugar.js';
+import { createValidator } from '../src/runtime/validator.js';
+import { authMiddleware, signToken } from '../src/runtime/auth.js';
+import { createSugar } from '../src/runtime/sugar.js';
 import { SqliteAdapter } from '../src/runtime/adapters/sqlite.js';
 
 const app = express();
@@ -21,6 +21,13 @@ const sugar = createSugar(db, knownTables);
 const validator_User = createValidator("User", {"username":{"type":"string","required":true,"min":3,"max":50},"email":{"type":"string","required":true,"max":255},"role":{"type":"enum","required":true,"enum":["admin","editor","viewer"]},"age":{"type":"number","required":false,"min":0,"max":150}});
 const validator_Post = createValidator("Post", {"title":{"type":"string","required":true,"min":1,"max":200},"content":{"type":"string","required":true,"max":5000},"status":{"type":"enum","required":true,"enum":["draft","published","archived"]},"authorId":{"type":"number","required":true}});
 const validator_Comment = createValidator("Comment", {"postId":{"type":"number","required":true},"text":{"type":"string","required":true,"max":1000},"author":{"type":"string","required":false,"max":100}});
+
+async function login(data) {
+  const users = await sugar.all('User');
+      const user = users.find((u) => u.username === (data.username || data.body?.username));
+      if (!user) throw Object.assign(new Error('User not found'), { status: 401 });
+      return { token: signToken({ sub: user.id, username: user.username }) };
+}
 
 async function createUser(data) {
   return sugar.save('User', data);
@@ -70,14 +77,39 @@ async function deletePost(data) {
 app.get('/__health', (req, res) => res.json({ status: 'ok', engine: 'Codeless v4' }));
 
 // Routes
+app.post("/login", async (req, res) => {
+  try {
+    const ctx = { ...req.query, ...req.params, ...(req.validated ?? req.body ?? {}) };
+    const result = await login(ctx);
+    res.json(result ?? { success: true });
+  } catch (err) {
+    const status = err?.status ?? 500;
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(status).json({ error: msg, message: msg });
+  }
+});
+
+app.post("/register", validator_User.middleware(), async (req, res) => {
+  try {
+    const ctx = { ...req.query, ...req.params, ...(req.validated ?? req.body ?? {}) };
+    const result = await createUser(ctx);
+    res.json(result ?? { success: true });
+  } catch (err) {
+    const status = err?.status ?? 500;
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(status).json({ error: msg, message: msg });
+  }
+});
+
 app.get("/users", async (req, res) => {
   try {
     const ctx = { ...req.query, ...req.params, ...(req.validated ?? req.body ?? {}) };
     const result = await listUsers(ctx);
     res.json(result ?? { success: true });
   } catch (err) {
-    const status = err.status ?? 500;
-    res.status(status).json({ error: err.message });
+    const status = err?.status ?? 500;
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(status).json({ error: msg, message: msg });
   }
 });
 
@@ -87,8 +119,9 @@ app.get("/users/:id", async (req, res) => {
     const result = await getUser(ctx);
     res.json(result ?? { success: true });
   } catch (err) {
-    const status = err.status ?? 500;
-    res.status(status).json({ error: err.message });
+    const status = err?.status ?? 500;
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(status).json({ error: msg, message: msg });
   }
 });
 
@@ -98,8 +131,9 @@ app.post("/users", authMiddleware, validator_User.middleware(), async (req, res)
     const result = await createUser(ctx);
     res.json(result ?? { success: true });
   } catch (err) {
-    const status = err.status ?? 500;
-    res.status(status).json({ error: err.message });
+    const status = err?.status ?? 500;
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(status).json({ error: msg, message: msg });
   }
 });
 
@@ -109,8 +143,9 @@ app.get("/posts", async (req, res) => {
     const result = await listPosts(ctx);
     res.json(result ?? { success: true });
   } catch (err) {
-    const status = err.status ?? 500;
-    res.status(status).json({ error: err.message });
+    const status = err?.status ?? 500;
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(status).json({ error: msg, message: msg });
   }
 });
 
@@ -120,8 +155,9 @@ app.post("/posts", authMiddleware, validator_Post.middleware(), async (req, res)
     const result = await createPost(ctx);
     res.json(result ?? { success: true });
   } catch (err) {
-    const status = err.status ?? 500;
-    res.status(status).json({ error: err.message });
+    const status = err?.status ?? 500;
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(status).json({ error: msg, message: msg });
   }
 });
 
@@ -131,8 +167,9 @@ app.delete("/posts/:id", authMiddleware, async (req, res) => {
     const result = await deletePost(ctx);
     res.json(result ?? { success: true });
   } catch (err) {
-    const status = err.status ?? 500;
-    res.status(status).json({ error: err.message });
+    const status = err?.status ?? 500;
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(status).json({ error: msg, message: msg });
   }
 });
 
@@ -142,8 +179,9 @@ app.get("/comments", async (req, res) => {
     const result = await listComments(ctx);
     res.json(result ?? { success: true });
   } catch (err) {
-    const status = err.status ?? 500;
-    res.status(status).json({ error: err.message });
+    const status = err?.status ?? 500;
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(status).json({ error: msg, message: msg });
   }
 });
 
@@ -153,10 +191,15 @@ app.post("/comments", validator_Comment.middleware(), async (req, res) => {
     const result = await createComment(ctx);
     res.json(result ?? { success: true });
   } catch (err) {
-    const status = err.status ?? 500;
-    res.status(status).json({ error: err.message });
+    const status = err?.status ?? 500;
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(status).json({ error: msg, message: msg });
   }
 });
 
 const port = parseInt(process.env.PORT || '3000', 10);
-app.listen(port, () => console.log('Codeless v4 server on port', port));
+const host = process.env.HOST || '0.0.0.0';
+app.listen(port, host, () => {
+  console.log('Codeless v4 server on http://' + host + ':' + port);
+  if (host === '0.0.0.0') console.log('  Postman / other apps: http://localhost:' + port + ' or http://127.0.0.1:' + port);
+});

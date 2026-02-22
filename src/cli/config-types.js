@@ -6,7 +6,7 @@
  * @property {{ sqlite: { path: string }, postgres: { connectionString?: string, ssl?: object } }} [database]
  * @property {{ port: number }} [server]
  * @property {{ table: string, dir: string }} [migrations]
- * @property {import('../runtime/plugins/index.js').CodelessPlugin[]} [plugins]
+ * @property {import('../runtime/index.js').CodelessPlugin[]} [plugins]
  */
 
 export default {};

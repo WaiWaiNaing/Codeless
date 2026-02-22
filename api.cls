@@ -34,6 +34,13 @@ data Comment {
 //  Each do block receives: (data, db, sugar, req)
 //  `req` is the raw Express request — use req.auth, req.params, etc.
 
+do login(data) {
+    const users = await sugar.all('User');
+    const user = users.find((u) => u.username === (data.username || data.body?.username));
+    if (!user) throw Object.assign(new Error('User not found'), { status: 401 });
+    return { token: signToken({ sub: user.id, username: user.username }) };
+}
+
 do createUser(data) {
     return sugar.save('User', data);
 }
@@ -87,6 +94,10 @@ do deletePost(data) {
 //    actionName        → call the do block with current context data
 
 route {
+    // Auth (no auth required)
+    POST   "/login"           => login
+    POST   "/register"        => validate(User), createUser
+
     // Users — public read, auth-protected write
     GET    "/users"           => listUsers
     GET    "/users/:id"       => getUser
