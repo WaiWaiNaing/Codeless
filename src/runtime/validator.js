@@ -55,18 +55,17 @@ export function createValidator(tableName, schema) {
     return result;
   }
 
-  function middleware() {
-    return (req, res, next) => {
-      try {
-        req.validated = validate(req.body ?? {});
-        next();
-      } catch (err) {
-        const status = err?.status ?? 400;
-        const message = err instanceof Error ? err.message : String(err);
-        res.status(status).json({ error: message, message });
-      }
-    };
+  /** Express middleware (valid handler, not a factory). */
+  function middleware(req, res, next) {
+    try {
+      req.validated = validate(req.body ?? {});
+      next();
+    } catch (err) {
+      const status = err?.status ?? 400;
+      const message = err instanceof Error ? err.message : String(err);
+      res.status(status).json({ error: message, message });
+    }
   }
 
-  return { validate, middleware: () => middleware };
+  return { validate, middleware };
 }

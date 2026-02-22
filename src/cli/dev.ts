@@ -13,6 +13,9 @@ import chalk from 'chalk';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
 
+const SIGKILL_TIMEOUT_MS = 5000;
+const REBUILD_DEBOUNCE_MS = 300;
+
 interface CompileResult {
   config: { output: { server: string }; server?: { port?: number } };
   output: { server: string; types: string };
@@ -70,33 +73,71 @@ function startServer(serverPath: string, port: number): ChildProcess {
   return child;
 }
 
-function killServer(): void {
-  if (!serverProcess) return;
-  serverProcess.kill('SIGTERM');
-  serverProcess = null;
+function killServer(): Promise<void> {
+  return new Promise((resolve) => {
+    if (!serverProcess) {
+      resolve();
+      return;
+    }
+    const proc = serverProcess;
+    serverProcess = null;
+
+    const done = () => {
+      clearTimeout(killTimeout);
+      proc.removeAllListeners('exit');
+      resolve();
+    };
+
+    proc.once('exit', () => done());
+
+    proc.kill('SIGTERM');
+
+    const killTimeout = setTimeout(() => {
+      try {
+        proc.kill('SIGKILL');
+      } catch {
+        /* already gone */
+      }
+      done();
+    }, SIGKILL_TIMEOUT_MS);
+  });
 }
 
+let rebuildDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingChangedFile: string | undefined;
+
 async function rebuildAndRestart(changedFile?: string): Promise<void> {
-  const result = await runCompile();
-  if (!result) {
-    if (changedFile) {
-      log(`Keeping previous server running. Fix errors and save again.`, 'warn');
+  pendingChangedFile = changedFile ?? pendingChangedFile;
+
+  if (rebuildDebounceTimer) {
+    clearTimeout(rebuildDebounceTimer);
+  }
+  rebuildDebounceTimer = setTimeout(async () => {
+    rebuildDebounceTimer = null;
+    const fileToLog = pendingChangedFile;
+    pendingChangedFile = undefined;
+
+    const result = await runCompile();
+    if (!result) {
+      if (fileToLog) {
+        log(`Keeping previous server running. Fix errors and save again.`, 'warn');
+      }
+      return;
     }
-    return;
-  }
 
-  const { output, config } = result;
-  const port = config.server?.port ?? 3000;
+    const { output, config } = result;
+    const port = config.server?.port ?? 3000;
 
-  killServer();
+    await killServer();
 
-  serverPath = output.server;
-  serverProcess = startServer(output.server, port);
+    serverPath = output.server;
+    serverProcess = startServer(output.server, port);
 
-  if (changedFile) {
-    const relative = path.relative(ROOT, changedFile);
-    log(chalk.bold(`🚀 Server reloaded due to changes in ${relative}`), 'success');
-  }
+    if (fileToLog) {
+      const relative = path.relative(ROOT, fileToLog);
+      log(chalk.bold(`🚀 Server reloaded due to changes in ${relative}`), 'success');
+    }
+  }, REBUILD_DEBOUNCE_MS);
 }
 
 function main(): void {
@@ -129,15 +170,15 @@ function main(): void {
     log(`Watcher error: ${err instanceof Error ? err.message : String(err)}`, 'error');
   });
 
-  process.on('SIGINT', () => {
+  process.on('SIGINT', async () => {
     log('Shutting down...');
-    killServer();
+    await killServer();
     watcher.close();
     process.exit(0);
   });
 
-  process.on('SIGTERM', () => {
-    killServer();
+  process.on('SIGTERM', async () => {
+    await killServer();
     watcher.close();
     process.exit(0);
   });

@@ -13,6 +13,10 @@ export function generate(ast, options = {}) {
   const relRuntime = runtimeDir.startsWith('.') ? runtimeDir : `./${runtimeDir}`;
 
   const knownTables = new Set(ast.dataBlocks.map((b) => b.name));
+  const tableColumns = {};
+  for (const b of ast.dataBlocks) {
+    tableColumns[b.name] = ['id', ...b.fields.map((f) => f.name)];
+  }
   const validatorSchemas = ast.dataBlocks.map((b) => ({ name: b.name, fields: b.fields }));
   const actionMap = new Map(ast.doBlocks.map((d) => [d.name, d]));
 
@@ -43,7 +47,8 @@ app.use(express.json());
   }
   server += `await db.connect();\n`;
   server += `const knownTables = new Set(${JSON.stringify([...knownTables])});\n`;
-  server += `const sugar = createSugar(db, knownTables);\n\n`;
+  server += `const tableColumns = ${JSON.stringify(tableColumns)};\n`;
+  server += `const sugar = createSugar(db, knownTables, tableColumns);\n\n`;
 
   for (const schema of validatorSchemas) {
     const validatorDef = schemaToValidatorDef(schema);
@@ -65,7 +70,7 @@ app.use(express.json());
     let actionName = null;
     for (const step of route.pipeline) {
       if (step.kind === 'auth') middlewares.push('authMiddleware');
-      else if (step.kind === 'validate') middlewares.push(`validator_${step.schema}.middleware()`);
+      else if (step.kind === 'validate') middlewares.push(`validator_${step.schema}.middleware`);
       else if (step.kind === 'action') actionName = step.name;
     }
     if (!actionName) continue;
