@@ -2,6 +2,15 @@
 //  handlers.cls  —  Business logic / do blocks
 // ─────────────────────────────────────────────────────────────────
 
+do ping(data) {
+    return { ok: true, ts: Date.now() };
+}
+
+// DB benchmark: first 20 records from User (public, no auth) – use with seed-db.js + autocannon
+do dbTest(data) {
+    return sugar.query('SELECT * FROM "User" LIMIT ?', 20);
+}
+
 do login(data) {
     const users = await sugar.all('User');
     const user = users.find((u) => u.username === (data.username || data.body?.username));

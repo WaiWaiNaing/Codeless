@@ -1,11 +1,13 @@
 /**
- * Codeless v4 – SQLite adapter (DatabaseAdapter interface)
+ * Codeless v4 – SQLite adapter (implements DatabaseAdapter)
  */
 
 import Database from 'better-sqlite3';
+import { DatabaseAdapter } from './base.js';
 
-export class SqliteAdapter {
+export class SqliteAdapter extends DatabaseAdapter {
   constructor(path = 'codeless.db') {
+    super();
     this.path = path;
     this.db = null;
   }

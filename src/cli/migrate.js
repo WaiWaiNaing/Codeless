@@ -6,6 +6,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
+import { DEFAULTS } from '../shared/defaults.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..', '..');
@@ -13,7 +14,7 @@ const root = path.resolve(__dirname, '..', '..');
 async function loadConfig() {
   const configPath = path.join(root, 'codeless.config.js');
   let adapter = 'sqlite';
-  let dbPath = path.join(root, 'codeless.db');
+  let dbPath = path.join(root, process.env.DB_FILE || (process.env.NODE_ENV === 'test' ? DEFAULTS.DB_FILE_TEST : DEFAULTS.DB_FILE));
   let migrationsTable = '_codeless_migrations';
   if (fs.existsSync(configPath)) {
     const mod = await import(pathToFileURL(configPath).href);

@@ -11,6 +11,8 @@ import { generate } from './codegen.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+import { DEFAULTS } from '../shared/defaults.js';
+
 /**
  * Load codeless.config.js from root. Returns resolved paths and options.
  * @param {string} [rootDir] - Project root (default: two levels up from src/compiler)
@@ -28,7 +30,7 @@ export async function loadConfig(rootDir) {
       },
       adapter: 'sqlite',
       database: {},
-      server: { port: 3000 },
+      server: { port: DEFAULTS.PORT },
       migrations: { table: '_codeless_migrations', dir: path.join(root, 'migrations') },
       plugins: [],
     };

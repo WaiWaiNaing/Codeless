@@ -7,26 +7,27 @@
     ".": "./index.js"
   },
   "dependencies": {
-    "better-sqlite3": "^11.0.0",
-    "express": "^4.21.0",
-    "helmet": "^7.1.0",
-    "cors": "^2.8.5",
-    "express-rate-limit": "^7.1.5",
-    "jsonwebtoken": "^9.0.2",
     "bcrypt": "^5.1.1",
+    "better-sqlite3": "^11.0.0",
+    "chalk": "^5.3.0",
+    "chokidar": "^4.0.1",
+    "commander": "^12.0.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "express-rate-limit": "^7.1.5",
     "express-validator": "^7.0.1",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
     "pino": "^8.17.2",
     "prom-client": "^15.1.0",
     "swagger-ui-express": "^5.0.0",
-    "vm2": "^3.9.19",
-    "chokidar": "^4.0.1",
-    "chalk": "^5.3.0",
-    "commander": "^12.0.0"
+    "vm2": "^3.9.19"
   },
   "devDependencies": {
-    "typescript": "^5.3.3",
+    "@types/node": "^20.10.0",
+    "autocannon": "^8.0.0",
     "tsx": "^4.7.0",
-    "@types/node": "^20.10.0"
+    "typescript": "^5.3.3"
   },
   "scripts": {
     "start": "node src/legacy/compiler-v3.js",
@@ -38,7 +39,9 @@
     "start:generated": "npm run build && node generated/server.js",
     "start:test": "npm run build && NODE_ENV=test DB_FILE=codeless.test.db PORT=3001 node generated/server.js",
     "test": "npm run check && npm run build",
-    "test:auth": "node scripts/test-auth.mjs"
+    "test:auth": "node scripts/test-auth.mjs",
+    "bench": "node test/bench-report.js",
+    "test:integration": "node test/integration.test.mjs"
   },
   "bin": {
     "codeless": "./bin/codeless.js"

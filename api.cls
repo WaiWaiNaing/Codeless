@@ -16,6 +16,11 @@ import "./handlers.cls"
 //    actionName        → call the do block with current context data
 
 route {
+    // Benchmark: autocannon -c 100 -d 10 http://localhost:3000/ping
+    GET    "/ping"            => ping
+    // DB benchmark: first 20 users (public); run seed-db.js first, then autocannon -c 100 -d 30 http://localhost:3000/db-test
+    GET    "/db-test"         => dbTest
+
     // Auth (no auth required)
     POST   "/login"           => login
     POST   "/register"        => validate(User), createUser

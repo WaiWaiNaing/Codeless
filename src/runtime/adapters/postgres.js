@@ -1,10 +1,13 @@
 /**
- * Codeless v4 – PostgreSQL adapter (DatabaseAdapter interface)
+ * Codeless v4 – PostgreSQL adapter (implements DatabaseAdapter)
  * Requires: pg package
  */
 
-export class PostgresAdapter {
+import { DatabaseAdapter } from './base.js';
+
+export class PostgresAdapter extends DatabaseAdapter {
   constructor(connectionString) {
+    super();
     this.connectionString = connectionString;
     this.pool = null;
   }

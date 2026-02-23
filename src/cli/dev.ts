@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 import { spawn, ChildProcess } from 'child_process';
 import chokidar from 'chokidar';
 import chalk from 'chalk';
+import { DEFAULTS } from '../shared/defaults.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
@@ -126,7 +127,7 @@ async function rebuildAndRestart(changedFile?: string): Promise<void> {
     }
 
     const { output, config } = result;
-    const port = config.server?.port ?? 3000;
+    const port = config.server?.port ?? DEFAULTS.PORT;
 
     await killServer();
 

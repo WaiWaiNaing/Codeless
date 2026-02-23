@@ -3,6 +3,8 @@
  * Use defineConfig in codeless.config.js for typed config with defaults.
  */
 
+import { DEFAULTS } from './src/shared/defaults.js';
+
 /**
  * Default configuration values (used when a key is omitted)
  */
@@ -14,10 +16,10 @@ const DEFAULT_CONFIG = {
   },
   adapter: 'sqlite',
   database: {
-    sqlite: { path: 'codeless.db' },
+    sqlite: { path: DEFAULTS.DB_FILE },
     postgres: { connectionString: undefined, ssl: false },
   },
-  server: { port: 3000 },
+  server: { port: DEFAULTS.PORT },
   migrations: {
     table: '_codeless_migrations',
     dir: './migrations',
@@ -44,7 +46,7 @@ const DEFAULT_CONFIG = {
 export function defineConfig(config = {}) {
   const dbPath =
     process.env.DB_FILE ||
-    (process.env.NODE_ENV === 'test' ? 'codeless.test.db' : 'codeless.db');
+    (process.env.NODE_ENV === 'test' ? DEFAULTS.DB_FILE_TEST : DEFAULTS.DB_FILE);
 
   return {
     ...DEFAULT_CONFIG,
@@ -79,7 +81,7 @@ export function defineConfig(config = {}) {
       ...config.server,
       port:
         config.server?.port ??
-        parseInt(process.env.PORT || String(DEFAULT_CONFIG.server.port), 10),
+        parseInt(process.env.PORT || String(DEFAULTS.PORT), 10),
     },
     migrations: {
       ...DEFAULT_CONFIG.migrations,
