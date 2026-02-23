@@ -95,8 +95,10 @@ app.use(express.json());
   // 4. Response Serialization Optimization (Fast JSON)
   server += `\n// Fast-path JSON Stringifiers\n`;
   for (const b of ast.dataBlocks) {
-    server += `function fastJson_${b.name}(data) {\n`;
-    server += `  if (Array.isArray(data)) return '[' + data.map(fastJson_${b.name}).join(',') + ']';\n`;
+    server += `function fastJson_${b.name}(data, _d) {\n`;
+    server += `  const depth = _d ?? 0;\n`;
+    server += `  if (depth > 10) return 'null';\n`;
+    server += `  if (Array.isArray(data)) return '[' + data.map((x) => fastJson_${b.name}(x, depth + 1)).join(',') + ']';\n`;
     server += `  if (!data) return 'null';\n`;
     let parts = [`'"id":' + data.id`];
     for (const f of b.fields) {
@@ -113,12 +115,13 @@ app.use(express.json());
   // Action Blocks (do blocks)
   for (const block of ast.doBlocks) {
     let body = block.body;
-    // Replace sugar.xxx('Table') with AOT db calls
-    body = body.replace(/sugar\.save\(\s*'([^']+)'\s*,\s*(.*?)\)/g, "aot_db.$1.save($2)");
-    body = body.replace(/sugar\.find\(\s*'([^']+)'\s*,\s*(.*?)\)/g, "aot_db.$1.find($2)");
-    body = body.replace(/sugar\.remove\(\s*'([^']+)'\s*,\s*(.*?)\)/g, "aot_db.$1.remove($2)");
-    body = body.replace(/sugar\.update\(\s*'([^']+)'\s*,\s*(.*?)\s*,\s*(.*?)\)/g, "aot_db.$1.update($2, $3)");
-    body = body.replace(/sugar\.all\(\s*'([^']+)'\s*(,\s*[^)]+)?\)/g, "db.findAll('$1'$2)");
+    // Replace sugar.xxx('Table'|"Table") with AOT db calls (single or double quotes)
+    body = body.replace(/sugar\.save\(\s*['"]([^'"]+)['"]\s*,\s*(.*?)\)/g, "aot_db.$1.save($2)");
+    body = body.replace(/sugar\.find\(\s*['"]([^'"]+)['"]\s*,\s*(.*?)\)/g, "aot_db.$1.find($2)");
+    body = body.replace(/sugar\.remove\(\s*['"]([^'"]+)['"]\s*,\s*(.*?)\)/g, "aot_db.$1.remove($2)");
+    body = body.replace(/sugar\.update\(\s*['"]([^'"]+)['"]\s*,\s*(.*?)\s*,\s*(.*?)\)/g, "aot_db.$1.update($2, $3)");
+    body = body.replace(/sugar\.all\(\s*['"]([^'"]+)['"]\s*(?:,\s*([^)]*))?\)/g, (_, table, args) =>
+      args ? `aot_db.${table}.findAll(${args})` : `aot_db.${table}.findAll()`);
     body = body.replace(/sugar\.query/g, "aot_db.query");
 
     server += `async function ${block.name}(data) {\n`;
@@ -147,8 +150,9 @@ app.use(express.json());
     server += `app.${method}("${route.path}", wrapAction(async (req, res) => {\n`;
 
     if (needsAuth) {
-      server += `  const header = req.headers.authorization;\n`;
-      server += `  if (!header || !header.startsWith('Bearer ')) throw Object.assign(new Error('Unauthorized'), { status: 401 });\n`;
+      server += `  const rawAuth = req.headers.authorization;\n`;
+      server += `  const header = Array.isArray(rawAuth) ? rawAuth[0] : rawAuth;\n`;
+      server += `  if (typeof header !== 'string' || !header.startsWith('Bearer ')) throw Object.assign(new Error('Unauthorized'), { status: 401 });\n`;
       server += `  req.user = jwt.verify(header.slice(7), process.env.JWT_SECRET || '${DEFAULTS.JWT_SECRET}', { algorithms: ['HS256'] });\n`;
     }
 

@@ -15,6 +15,7 @@ export class SqliteAdapter extends DatabaseAdapter {
   async connect() {
     this.db = new Database(this.path);
     this.db.pragma('journal_mode = WAL');
+    this.db.pragma('busy_timeout = 5000');
     this.db.pragma('foreign_keys = ON');
   }
 
