@@ -63,9 +63,9 @@
   "files": [
     "index.js",
     "bin",
-    "src/config",
-    "src/compiler",
-    "src/runtime",
-    "src/cli"
+    "src",
+    "tsconfig.json",
+    "README.md",
+    "LICENSE"
   ]
 }

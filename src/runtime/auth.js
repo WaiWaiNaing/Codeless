@@ -4,7 +4,20 @@
 
 import jwt from 'jsonwebtoken';
 
-const defaultSecret = process.env.JWT_SECRET || 'changeme-secret';
+const DEV_SECRET = 'changeme-secret';
+
+function getDefaultSecret() {
+  const secret = process.env.JWT_SECRET || DEV_SECRET;
+  if (process.env.NODE_ENV === 'production' && (secret === DEV_SECRET || !process.env.JWT_SECRET)) {
+    throw new Error('JWT_SECRET must be set in production. Do not use the default secret.');
+  }
+  return secret;
+}
+
+/** Lazy so we only enforce in production when auth is actually used. */
+function defaultSecret() {
+  return getDefaultSecret();
+}
 
 /**
  * Sign a JWT payload (e.g. for login). Uses JWT_SECRET.
@@ -14,7 +27,7 @@ const defaultSecret = process.env.JWT_SECRET || 'changeme-secret';
 export function signToken(payload, opts = {}) {
   return jwt.sign(
     payload,
-    defaultSecret,
+    defaultSecret(),
     { algorithm: 'HS256', expiresIn: opts.expiresIn ?? '1h' }
   );
 }
@@ -23,7 +36,7 @@ export function signToken(payload, opts = {}) {
  * @param {{ secret?: string }} [options]
  */
 export function createAuth(options = {}) {
-  const secret = options.secret ?? defaultSecret;
+  const secret = options.secret ?? defaultSecret();
 
   function authMiddleware(req, res, next) {
     const header = req.headers.authorization;

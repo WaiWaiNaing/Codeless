@@ -8,6 +8,7 @@ export const DEFAULTS = Object.freeze({
   HOST: '0.0.0.0',
   DB_FILE: 'codeless.db',
   DB_FILE_TEST: 'codeless.test.db',
+  /** Dev-only default; production must set JWT_SECRET in the environment. */
   JWT_SECRET: 'changeme-secret',
   LOG_LEVEL: 'info',
 });
