@@ -20,13 +20,14 @@ codeless/
 │   ├── compiler/         # AOT compiler (parse, resolve, codegen, compile)
 │   │   ├── index.js      # Barrel: compile, loadConfig
 │   │   ├── compile.js    # Compiler entry & loadConfig re-export
-│   │   ├── resolver.js   # Module resolution & AST merge
-│   │   ├── codegen.js    # AOT code generation
-│   │   ├── parser.js     # DSL parser
-│   │   ├── lexer.js      # Lexer
-│   │   ├── aot-validation.js
-│   │   ├── source-utils.js
-│   │   └── types.js
+│   │   ├── resolver.js   # Module resolution & AST merge (import "./file.cls")
+│   │   ├── codegen.js    # AOT code generation → server.js + types.d.ts
+│   │   ├── parser.js     # DSL parser (data, do, route, migration, import)
+│   │   ├── lexer.js      # Tokenizer (TT, NUMBER, IDENT, STRING, etc.)
+│   │   ├── aot-validation.js  # schemaToValidationCode, fieldToTsType
+│   │   ├── source-utils.js    # locateBraceInSource, extractRawBlock (do bodies)
+│   │   ├── types.js      # JSDoc typedefs (AST, DataBlock, RouteLine, …)
+│   │   └── compile.d.ts  # TypeScript declarations for compile API
 │   ├── runtime/          # Generated server runtime (adapters, auth, errors, etc.)
 │   │   ├── index.js      # Plugin API (runBeforeAction, runAfterAction)
 │   │   ├── auth.js
@@ -58,6 +59,24 @@ codeless/
 
 Both are **framework files** (they configure or modify the engine), not application or user code.
 
+## Compiler pipeline
+
+The AOT compiler turns `.cls` source into `generated/server.js` and `generated/types.d.ts`:
+
+| File | Role |
+|------|------|
+| **lexer.js** | Tokenizes source (KEYWORD, IDENT, NUMBER, STRING, LPAREN, etc.). Used by parser. |
+| **source-utils.js** | `locateBraceInSource(source, line)`, `extractRawBlock(source, openBraceIndex)` to get `do` block bodies from source. |
+| **parser.js** | `parse(source)` → AST (dataBlocks, doBlocks, routeLines, migrations, imports). Uses lexer + source-utils. |
+| **resolver.js** | `resolveModules(entryFile, rootDir)` loads entry and all `import "./file.cls"`, merges ASTs, detects circular deps. Uses parser. |
+| **aot-validation.js** | `schemaToValidationCode(schema)` → `validate_SchemaName(data)` source; `fieldToTsType(f)` for TypeScript. |
+| **codegen.js** | `generate(ast, options)` → `{ server, types }`. Emits aot_db, PREP, validation, fastJson_ (with depth limit), sugar→aot_db replacements, routes with auth, error handler. Uses aot-validation + config/defaults. |
+| **compile.js** | `loadConfig(rootDir)`, `compile(rootDir)`: load config → resolveModules → generate → write files. Re-exports loadConfig. |
+| **types.js** | JSDoc typedefs only (AST, DataBlock, DoBlock, RouteLine, PipelineStep, etc.). |
+| **compile.d.ts** | TypeScript declarations for compile API. |
+
+All of the above live in `src/compiler/` and are part of the published package.
+
 ## Module Boundaries
 
 | Module    | Role | Consumed by |
@@ -87,7 +106,7 @@ Generated servers can import from `codeless/runtime/...` when the app depends on
 3. **New runtime behavior** – Add or change files under `src/runtime/`; ensure codegen emits the correct imports in `generated/server.js`.
 4. **New compiler pass** – Add a step in `compile.js` (e.g. after `resolveModules`, before `generate`) or extend `codegen.js` / parser.
 
-**Note:** The compiler expects `resolver.js`, `codegen.js`, `parser.js`, `lexer.js`, `aot-validation.js`, and `source-utils.js` to exist in `src/compiler/`. If your repo uses subdirs (e.g. `codegen/`, `parse/`, `resolve/`), add `index.js` barrels there and have `compile.js` import from them (e.g. `./codegen/index.js`).
+The compiler files (`resolver.js`, `codegen.js`, `parser.js`, `lexer.js`, `aot-validation.js`, `source-utils.js`, `types.js`, `compile.d.ts`) all live in `src/compiler/` as shown in the directory layout and Compiler pipeline section above.
 
 ## Build & Test
 
