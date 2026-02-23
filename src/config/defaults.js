@@ -1,6 +1,6 @@
 /**
- * Codeless v4 – Shared default configuration
- * Single source of truth for compiler, CLI, and runtime to avoid duplication.
+ * Codeless v4 – Default configuration values
+ * Single source of truth for compiler, CLI, and runtime.
  */
 
 export const DEFAULTS = Object.freeze({
@@ -12,7 +12,9 @@ export const DEFAULTS = Object.freeze({
   LOG_LEVEL: 'info',
 });
 
-/** @param {string} [key] - Env key (e.g. 'PORT'). Returns process.env[key] or default. */
+/**
+ * @param {string} [key] - Env key (e.g. 'PORT'). Returns process.env[key] or default.
+ */
 export function env(key) {
   switch (key) {
     case 'PORT':
@@ -26,7 +28,7 @@ export function env(key) {
     case 'LOG_LEVEL':
       return process.env.LOG_LEVEL || DEFAULTS.LOG_LEVEL;
     default:
-      return process.env[key];
+      return process.env?.[key];
   }
 }
 

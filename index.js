@@ -3,7 +3,7 @@
  * Use defineConfig in codeless.config.js for typed config with defaults.
  */
 
-import { DEFAULTS } from './src/shared/defaults.js';
+import { DEFAULTS } from './src/config/defaults.js';
 
 /**
  * Default configuration values (used when a key is omitted)
@@ -31,8 +31,8 @@ const DEFAULT_CONFIG = {
  * Deep-merge defaults with user config (shallow merge per top-level key).
  * Environment-aware: database.sqlite.path uses DB_FILE or NODE_ENV=test → codeless.test.db.
  *
- * @param {Partial<import('./src/cli/config-types.js').CodelessConfig>} config - User config (partial)
- * @returns {import('./src/cli/config-types.js').CodelessConfig} Full config with defaults
+ * @param {Partial<import('./src/config/config-types.js').CodelessConfig>} config - User config (partial)
+ * @returns {import('./src/config/config-types.js').CodelessConfig} Full config with defaults
  *
  * @example
  * // codeless.config.js

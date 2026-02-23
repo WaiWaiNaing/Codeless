@@ -4,7 +4,21 @@
   "type": "module",
   "main": "index.js",
   "exports": {
-    ".": "./index.js"
+    ".": "./index.js",
+    "./config": "./src/config/index.js",
+    "./config/defaults": "./src/config/defaults.js",
+    "./config/load-config": "./src/config/load-config.js",
+    "./runtime": "./src/runtime/index.js",
+    "./runtime/auth": "./src/runtime/auth.js",
+    "./runtime/errors": "./src/runtime/errors.js",
+    "./runtime/wrapAction": "./src/runtime/wrapAction.js",
+    "./runtime/queryBuilder": "./src/runtime/queryBuilder.js",
+    "./runtime/sugar": "./src/runtime/sugar.js",
+    "./runtime/validator": "./src/runtime/validator.js",
+    "./runtime/adapters/sqlite": "./src/runtime/adapters/sqlite.js",
+    "./runtime/adapters/postgres": "./src/runtime/adapters/postgres.js",
+    "./runtime/adapters/base": "./src/runtime/adapters/base.js",
+    "./compiler": "./src/compiler/index.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
@@ -45,5 +59,13 @@
   },
   "bin": {
     "codeless": "./bin/codeless.js"
-  }
+  },
+  "files": [
+    "index.js",
+    "bin",
+    "src/config",
+    "src/compiler",
+    "src/runtime",
+    "src/cli"
+  ]
 }

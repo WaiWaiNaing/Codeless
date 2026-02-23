@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url';
 import { spawn, ChildProcess } from 'child_process';
 import chokidar from 'chokidar';
 import chalk from 'chalk';
-import { DEFAULTS } from '../shared/defaults.js';
+import { DEFAULTS } from '../config/defaults.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
