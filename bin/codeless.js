@@ -34,7 +34,7 @@ function runCommand(name, extraArgs = []) {
   const args = config.runner === 'tsx' ? ['tsx', scriptPath, ...extraArgs] : [scriptPath, ...extraArgs];
   const result = spawnSync(runner, args, {
     stdio: 'inherit',
-    cwd: ROOT,
+    cwd: process.cwd(),
   });
   process.exit(result.status != null ? result.status : result.signal ? 1 : 0);
 }

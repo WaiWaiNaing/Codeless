@@ -12,7 +12,8 @@ import chalk from 'chalk';
 import { DEFAULTS } from '../config/defaults.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, '..', '..');
+/** Project root: where the user ran codeless (process.cwd()), so dev/build work in the consumer app. */
+const ROOT = process.cwd();
 
 const SIGKILL_TIMEOUT_MS = 5000;
 const REBUILD_DEBOUNCE_MS = 300;

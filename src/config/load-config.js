@@ -11,11 +11,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * Load codeless.config.js from root. Returns resolved paths and options.
- * @param {string} [rootDir] - Project root (default: two levels up from src/config)
+ * When rootDir is omitted, uses process.cwd() so that `npx codeless build` from a consumer app uses that app's directory.
+ * @param {string} [rootDir] - Project root (default: process.cwd())
  * @returns {Promise<import('./config-types.js').ResolvedConfig>}
  */
 export async function loadConfig(rootDir) {
-  const root = rootDir ? path.resolve(rootDir) : path.resolve(__dirname, '..', '..');
+  const root = rootDir ? path.resolve(rootDir) : process.cwd();
   const configPath = path.join(root, 'codeless.config.js');
 
   if (!fs.existsSync(configPath)) {

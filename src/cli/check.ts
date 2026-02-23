@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url';
 import chalk from 'chalk';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, '..', '..');
+const ROOT = process.cwd();
 
 const VALID_SCHEMA_TYPES = new Set([
   'String',
