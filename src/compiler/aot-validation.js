@@ -35,6 +35,7 @@ export function schemaToValidationCode(schema) {
       }
       code += `    result['${key}'] = data['${key}'];\n`;
     } else if (f.type.toLowerCase() === 'number') {
+      code += `    if (typeof data['${key}'] !== 'number' && typeof data['${key}'] !== 'string') throw Object.assign(new Error('${schema.name}: "${key}" must be a number'), { status: 400 });\n`;
       code += `    const n = Number(data['${key}']);\n`;
       code += `    if (!Number.isFinite(n)) throw Object.assign(new Error('${schema.name}: "${key}" must be a number'), { status: 400 });\n`;
       if (f.args?.min !== undefined) code += `    if (n < ${f.args.min}) throw Object.assign(new Error('${schema.name}: "${key}" must be >= ${f.args.min}'), { status: 400 });\n`;

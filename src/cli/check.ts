@@ -51,7 +51,7 @@ async function runCheck(): Promise<CheckIssue[]> {
   if (!fs.existsSync(entry)) {
     throw new Error(`Entry file not found: ${entry}`);
   }
-  const source = fs.readFileSync(entry, 'utf-8');
+  const { resolveModules } = await import('../compiler/resolver.js');
   let ast: {
     dataBlocks: Array<{ name: string; fields: Array<{ name: string; type: string; optional?: boolean; args?: Record<string, unknown> }> }>;
     doBlocks: Array<{ name: string; body: string; line: number }>;
@@ -62,10 +62,10 @@ async function runCheck(): Promise<CheckIssue[]> {
     }>;
   };
   try {
-    ast = parse(source) as typeof ast;
+    ast = resolveModules(entry, config.root) as typeof ast;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(`Parse failed: ${msg}`);
+    throw new Error(`Resolve failed: ${msg}`);
   }
 
   const issues: CheckIssue[] = [];

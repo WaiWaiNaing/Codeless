@@ -30,6 +30,13 @@ import { ${adapterImport} } from '${adapterPath}';
 const app = express();
 app.use(express.json());
 
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
+  console.error('FATAL: JWT_SECRET environment variable is required in production.');
+  process.exit(1);
+}
+const SECRET_KEY = JWT_SECRET || '${DEFAULTS.JWT_SECRET}';
+
 // Database adapter connection
 `;
   if (adapter === 'sqlite') {
@@ -43,7 +50,13 @@ app.use(express.json());
   const tableCols = {};
   for (const b of ast.dataBlocks) tableCols[b.name] = b.fields.map((f) => f.name);
   server += `const TABLE_COLS = ${JSON.stringify(tableCols)};\n`;
-  server += `const PREP = QueryBuilder.prepareAll('${adapter}', db, TABLE_COLS);\n\n`;
+  server += `let PREP;\n`;
+  server += `try {\n`;
+  server += `  PREP = QueryBuilder.prepareAll('${adapter}', db, TABLE_COLS);\n`;
+  server += `} catch (e) {\n`;
+  server += `  console.error('FATAL: Failed to prepare SQL statements. Did you run migrations?', e.message);\n`;
+  server += `  process.exit(1);\n`;
+  server += `}\n\n`;
   server += `\n// AOT Database Helpers\nconst aot_db = {\n`;
   for (const b of ast.dataBlocks) {
     const t = b.name;
@@ -51,7 +64,18 @@ app.use(express.json());
     const allowedCols = JSON.stringify(['id', ...b.fields.map(f => f.name)]);
     server += `  ${t}: {\n`;
     if (adapter === 'sqlite') {
-      server += `    save: (data) => { const r = PREP['${t}'].insert.run(${args.join(', ')}); return { id: r.lastInsertRowid }; },\n`;
+      server += `    save: (data, _retry = 0) => {
+      try {
+        const r = PREP['${t}'].insert.run(${args.join(', ')});
+        return { id: r.lastInsertRowid };
+      } catch (e) {
+        if ((e.code === 'SQLITE_BUSY' || e.code === 'SQLITE_LOCKED') && _retry < 3) {
+          Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50 * (_retry + 1));
+          return aot_db.${t}.save(data, _retry + 1);
+        }
+        throw e;
+      }
+    },\n`;
       server += `    update: (id, data) => PREP['${t}'].update.run(${args.join(', ')}, id),\n`;
       server += `    remove: (id) => PREP['${t}'].delete.run(id),\n`;
       server += `    find: (id) => PREP['${t}'].findById.get(id),\n`;
@@ -153,14 +177,14 @@ app.use(express.json());
       server += `  const rawAuth = req.headers.authorization;\n`;
       server += `  const header = Array.isArray(rawAuth) ? rawAuth[0] : rawAuth;\n`;
       server += `  if (typeof header !== 'string' || !header.startsWith('Bearer ')) throw Object.assign(new Error('Unauthorized'), { status: 401 });\n`;
-      server += `  req.user = jwt.verify(header.slice(7), process.env.JWT_SECRET || '${DEFAULTS.JWT_SECRET}', { algorithms: ['HS256'] });\n`;
+      server += `  req.user = jwt.verify(header.slice(7), SECRET_KEY, { algorithms: ['HS256'] });\n`;
     }
 
     if (schemaToValidate) {
       server += `  const validatedBody = validate_${schemaToValidate}(req.body || {});\n`;
-      server += `  const ctx = { ...req.params, ...validatedBody };\n`;
+      server += `  const ctx = Object.assign(Object.create(null), req.params, validatedBody);\n`;
     } else {
-      server += `  const ctx = { ...req.params, ...req.query, ...(req.body || {}) };\n`;
+      server += `  const ctx = Object.assign(Object.create(null), req.params, req.query, req.body || {});\n`;
     }
 
     server += `  const result = await ${actionName}(ctx);\n`;

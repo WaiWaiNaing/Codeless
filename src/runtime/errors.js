@@ -45,6 +45,9 @@ export function toCodelessError(err) {
     } else if (code === 'SQLITE_CONSTRAINT_NOTNULL' || code === '23502') {
       finalStatus = 400;
       finalMessage = message || 'Required value missing';
+    } else if (code === 'SQLITE_BUSY' || code === 'SQLITE_LOCKED') {
+      finalStatus = 503;
+      finalMessage = 'Database busy, please retry';
     } else if (message && (message.includes('ECONNREFUSED') || message.includes('ENOENT'))) {
       finalStatus = 503;
       finalMessage = 'Service temporarily unavailable';
