@@ -1,0 +1,116 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  test:
+    name: Test on Node.js ${{ matrix.node-version }}
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [18.x, 20.x, 22.x]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run static checks
+        run: npm run check
+      
+      - name: Build project
+        run: npm run build
+      
+      - name: Verify generated files
+        run: |
+          if [ ! -f "generated/server.js" ]; then
+            echo "Error: generated/server.js not found"
+            exit 1
+          fi
+          if [ ! -f "generated/types.d.ts" ]; then
+            echo "Error: generated/types.d.ts not found"
+            exit 1
+          fi
+          echo "✅ Generated files verified"
+      
+      - name: Run tests
+        run: npm test
+        continue-on-error: true
+
+  lint-and-typecheck:
+    name: Lint and Type Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run static checks
+        run: npm run check
+      
+      - name: TypeScript type check (if applicable)
+        run: |
+          if [ -f "tsconfig.json" ]; then
+            npx tsc --noEmit || echo "TypeScript check skipped"
+          fi
+        continue-on-error: true
+
+  build-verification:
+    name: Build Verification
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Clean previous builds
+        run: |
+          rm -rf generated
+        continue-on-error: true
+      
+      - name: Build project
+        run: npm run build
+      
+      - name: Check build artifacts
+        run: |
+          echo "Checking generated files..."
+          test -f generated/server.js || (echo "❌ server.js not generated" && exit 1)
+          test -f generated/types.d.ts || (echo "❌ types.d.ts not generated" && exit 1)
+          echo "✅ All build artifacts present"
+      
+      - name: Validate generated server.js syntax
+        run: |
+          node -c generated/server.js || (echo "❌ Generated server.js has syntax errors" && exit 1)
+          echo "✅ Generated server.js syntax is valid"

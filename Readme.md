@@ -10,6 +10,8 @@
   <img src="https://img.shields.io/badge/Node.js-18%2B-339933?style=flat-square&logo=node.js" alt="Node 18+" />
 </p>
 
+[![CI](https://github.com/WaiWaiNaing/Codeless/actions/workflows/ci.yml/badge.svg)](https://github.com/WaiWaiNaing/Codeless/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/WaiWaiNaing/Codeless/actions/workflows/codeql.yml/badge.svg)](https://github.com/WaiWaiNaing/Codeless/actions/workflows/codeql.yml)
 ---
 
 # Codeless v4
