@@ -6,10 +6,12 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "allowJs": true,
+    "checkJs": false,
     "outDir": "dist",
     "rootDir": ".",
     "types": ["node"]
   },
-  "include": ["src/cli/**/*.ts", "src/compiler/**/*.d.ts"],
+  "include": ["src/cli/**/*.ts", "src/compiler/**/*.d.ts", "src/config/**/*.d.ts"],
   "exclude": ["node_modules", "generated", "dist"]
 }

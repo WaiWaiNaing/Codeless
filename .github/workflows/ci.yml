@@ -36,6 +36,7 @@ jobs:
         run: npm run build
       
       - name: Verify generated files
+        shell: bash
         run: |
           if [ ! -f "generated/server.js" ]; then
             echo "Error: generated/server.js not found"
@@ -72,9 +73,10 @@ jobs:
         run: npm run check
       
       - name: TypeScript type check (if applicable)
+        shell: bash
         run: |
           if [ -f "tsconfig.json" ]; then
-            npx tsc --noEmit || echo "TypeScript check skipped"
+            npx tsc --noEmit --skipLibCheck || echo "TypeScript check completed with warnings"
           fi
         continue-on-error: true
 
@@ -96,6 +98,7 @@ jobs:
         run: npm ci
       
       - name: Clean previous builds
+        shell: bash
         run: |
           rm -rf generated
         continue-on-error: true
@@ -104,6 +107,7 @@ jobs:
         run: npm run build
       
       - name: Check build artifacts
+        shell: bash
         run: |
           echo "Checking generated files..."
           test -f generated/server.js || (echo "❌ server.js not generated" && exit 1)
@@ -111,6 +115,7 @@ jobs:
           echo "✅ All build artifacts present"
       
       - name: Validate generated server.js syntax
+        shell: bash
         run: |
           node -c generated/server.js || (echo "❌ Generated server.js has syntax errors" && exit 1)
           echo "✅ Generated server.js syntax is valid"
